@@ -269,6 +269,11 @@ namespace EnumerableTest
                 new char[] {},
                 "GetUsedChars should return empty sequence if source is empty"
             );
+            GetUsedCharsTest(
+                new[] { "ax", "bbbb", "ccccc", "dddddd", "    " },
+                new[] { 'a', 'b', 'c', 'd', 'x', ' ',  },
+                "GetUsedChars should return list of used chars"
+            );
         }
         #endregion GetUsedChars tests
 
