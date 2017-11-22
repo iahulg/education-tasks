@@ -91,7 +91,11 @@ namespace EnumerableTask
 		/// </example>
 		public IEnumerable<string> GetPrefixItems(IEnumerable<string> data, string prefix)
 		{
-            return data.Where(d => d.StartsWith(prefix));
+            if (prefix == null)
+            {
+                throw new ArgumentNullException(nameof(prefix));
+            }
+            return data.Where(d => !string.IsNullOrEmpty(d) && d.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary> Returns every second item from source sequence</summary>
@@ -260,10 +264,10 @@ namespace EnumerableTask
             {
                 return 0;
             }
-            return data.GroupBy(d => LenWithNulls(d), (key, group) => new KeyValuePair<int, int>(key, group.Count()))
+            return data.GroupBy(d => LenWithNulls(d))
                        .OrderByDescending(g => g.Key)
-                       .First()
-                       .Value;
+                       .Select(g => g.Count())
+                       .FirstOrDefault();
         }
 
 		/// <summary> Counts the digit chars in a string</summary>
@@ -309,12 +313,15 @@ namespace EnumerableTask
 		///    {(1/1/2010, 10)  , (4/4/2010, 10), (10/10/2010, 10) } => { 10, 10, 0, 10 }
 		/// </example>
 		public int[] GetQuarterSales(IEnumerable<Tuple<DateTime, int>> sales)
-		{
-            return sales.GroupBy(s => (s.Item1.Month + 2) / 3, (k, group) => new KeyValuePair<int, int>(k, group.Sum(g => g.Item2)))
+		{            
+            var emptyQuarters = Enumerable.Range(1, 4).Select(x => new KeyValuePair<int, int>(x, 0));
+            return sales.Select(s => new KeyValuePair<int, int>((s.Item1.Month + 2) / 3, s.Item2))
+                        .Concat(emptyQuarters)
+                        .GroupBy(s => s.Key)
                         .OrderBy(g => g.Key)
-                        .Select(g => g.Value)
+                        .Select(s => s.Sum(x => x.Value))
                         .ToArray();
-		}
+        }
 
 		/// <summary> Sorts string by length and alphabet </summary>
 		/// <param name="data">the source data</param>
@@ -480,7 +487,7 @@ namespace EnumerableTask
 		/// </example>
 		public bool IsSequenceHasNulls(IEnumerable<string> data)
 		{
-			throw new NotImplementedException();
+            return data.Any(d => d == null);
 		}
 
 		/// <summary> Determines whether all strings in sequence are uppercase</summary>
@@ -496,7 +503,8 @@ namespace EnumerableTask
 		/// </example>
 		public bool IsAllStringsAreUppercase(IEnumerable<string> data)
 		{
-			throw new NotImplementedException();
+            return data.Any() && data.All(d => !string.IsNullOrEmpty(d) && 
+                                                string.Equals(d, d.ToUpperInvariant()));
 		}
 
 		/// <summary> Finds first subsequence of negative integers </summary>
@@ -514,7 +522,7 @@ namespace EnumerableTask
 		/// </example>
 		public IEnumerable<int> GetFirstNegativeSubsequence(IEnumerable<int> data)
 		{
-			throw new NotImplementedException();
+            return data.SkipWhile(d => d >= 0).TakeWhile(d => d < 0);
 		}
 
 		/// <summary> 
@@ -533,7 +541,7 @@ namespace EnumerableTask
 		/// </example>
 		public bool AreNumericListsEqual(IEnumerable<int> integers, IEnumerable<double> doubles)
 		{
-			throw new NotImplementedException();
+            return doubles.SequenceEqual(integers.Select(i =>(double) i));
 		}
 
 		/// <summary>
@@ -552,7 +560,9 @@ namespace EnumerableTask
 		/// </example>
 		public string GetNextVersionFromList(IEnumerable<string> versions, string currentVersion)
 		{
-			throw new NotImplementedException();
+            return versions.SkipWhile(v => !string.Equals(v, currentVersion, StringComparison.OrdinalIgnoreCase))
+                           .Skip(1)
+                           .FirstOrDefault();
 		}
 
 		/// <summary>
@@ -570,7 +580,7 @@ namespace EnumerableTask
 		/// </example>
 		public IEnumerable<int> GetSumOfVectors(IEnumerable<int> vector1, IEnumerable<int> vector2)
 		{
-			throw new NotImplementedException();
+            return vector1.Zip(vector2, (first, second) => first + second);
 		}
 
 		/// <summary>
@@ -589,7 +599,7 @@ namespace EnumerableTask
 		/// </example>
 		public int GetProductOfVectors(IEnumerable<int> vector1, IEnumerable<int> vector2)
 		{
-			throw new NotImplementedException();
+            return vector1.Zip(vector2, (first, second) => first * second).Sum();
 		}
 
 		/// <summary>
@@ -608,7 +618,7 @@ namespace EnumerableTask
 		/// </example>
 		public IEnumerable<string> GetAllPairs(IEnumerable<string> boys, IEnumerable<string> girls)
 		{
-			throw new NotImplementedException();
+            return boys.SelectMany(b => girls.Select(g => string.Format("{0}+{1}", b, g))).Distinct();
 		}
 
 		/// <summary>
@@ -626,7 +636,11 @@ namespace EnumerableTask
 		/// </example>
 		public double GetAverageOfDoubleValues(IEnumerable<object> data)
 		{
-			throw new NotImplementedException();
+            if (!data.Any(d => d is double))
+            {
+                return 0;
+            }
+            return data.Where(d => d is double).Select(d => (double)d).Average();
 		}
 
         private int LenWithNulls(string arg)
