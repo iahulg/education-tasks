@@ -126,7 +126,9 @@ namespace EnumerableTask
 		///   { 1,2,3,4,5} => { 1, 2,2, 3,3,3, 4,4,4,4, 5,5,5,5,5 }
 		/// </example>
 		public IEnumerable<T> PropagateItemsByPositionIndex<T>(IEnumerable<T> data)
-		{
+        {
+            // Для повторения одно и того же элемента есть у класса Enumerable
+            // есть статик метод data.SelectMany((item, index) => Enumerable.Repeat(item, index + 1));
             return data.SelectMany((d, index) => Enumerable.Range(0, index + 1).Select(r => d));
 		}
 
@@ -144,6 +146,8 @@ namespace EnumerableTask
 		/// </example>
 		public IEnumerable<char> GetUsedChars(IEnumerable<string> data)
 		{
+            // Distinct довольно затратная операция, тут не обязательно её два раза вызывать
+            // data.Where(d => !string.IsNullOrEmpty(d)).SelectMany(d => d).Distinct();
             return data.Where(d => !string.IsNullOrEmpty(d)).SelectMany(d => d.Distinct()).Distinct();
 		}
 
@@ -209,7 +213,9 @@ namespace EnumerableTask
 		///   { } => null
 		/// </example>
 		public string GetFirstContainsFirst(IEnumerable<string> data)
-		{
+        {
+            // Для сравнения строк лучше использовать доп. параметр StringComparsion
+            // data.FirstOrDefault(item => !string.IsNullOrEmpty(item) && item.IndexOf("first", StringComparison.OrdinalIgnoreCase) >= 0);
             const string strToFind = "FIRST";
             return data.FirstOrDefault(d => !string.IsNullOrEmpty(d) && d.ToUpperInvariant().Contains(strToFind));
 		}
@@ -313,7 +319,15 @@ namespace EnumerableTask
 		///    {(1/1/2010, 10)  , (4/4/2010, 10), (10/10/2010, 10) } => { 10, 10, 0, 10 }
 		/// </example>
 		public int[] GetQuarterSales(IEnumerable<Tuple<DateTime, int>> sales)
-		{            
+        {            
+            // RTFM: How to use Aggregate.
+            // sales
+            //   .Aggregate(new int[4], (sum, sale) =>
+            //   {
+            //       sum[(sale.Item1.Month - 1) / 3] += sale.Item2;
+            //       return sum;
+            //   });
+
             var emptyQuarters = Enumerable.Range(1, 4).Select(x => new KeyValuePair<int, int>(x, 0));
             return sales.Select(s => new KeyValuePair<int, int>((s.Item1.Month + 2) / 3, s.Item2))
                         .Concat(emptyQuarters)
@@ -432,7 +446,11 @@ namespace EnumerableTask
 		///    { } => 0
 		/// </example>
 		public int GetSumOfAllInts(object[] data)
-		{
+        {
+            // RTFM: How to use OfType<T>()
+            //data
+            //  .OfType<int>()
+            //  .Sum();
             return data.Where(d => d is int)
                        .Select(d => (int) d)
                        .Sum(); 
@@ -450,7 +468,9 @@ namespace EnumerableTask
 		///   { } => { }
 		/// </example>
 		public IEnumerable<string> GetStringsOnly(object[] data)
-		{
+        {
+            // Также ошибка что и в предыдущем примере, не нужно делать
+            // никаких лишних преобразований data.OfType<string>();
             return data.Where(d => d is string)
                        .Select(d => (string) d);
         }
@@ -502,7 +522,10 @@ namespace EnumerableTask
 		///   { } => false
 		/// </example>
 		public bool IsAllStringsAreUppercase(IEnumerable<string> data)
-		{
+        {
+            // Более логично мне кажется пробежаться по всем буквам в массиве
+            // и проверить их на причастность к заглавным буквам, чем делать преобразования.
+            // data.SelectMany(item => item).DefaultIfEmpty().All(char.IsUpper);
             return data.Any() && data.All(d => !string.IsNullOrEmpty(d) && 
                                                 string.Equals(d, d.ToUpperInvariant()));
 		}
@@ -617,7 +640,9 @@ namespace EnumerableTask
 		///  { }, {"Alice"} => { }
 		/// </example>
 		public IEnumerable<string> GetAllPairs(IEnumerable<string> boys, IEnumerable<string> girls)
-		{
+        {
+            // Не совсем понял зачем тут Distinct, можно обойтись и без него.
+            // boys.SelectMany(boy => girls.Select(girl => $"{boy}+{girl}"));
             return boys.SelectMany(b => girls.Select(g => string.Format("{0}+{1}", b, g))).Distinct();
 		}
 
